@@ -1,4 +1,4 @@
-# random
+# random todo app
 
 A new Flutter project.
 
