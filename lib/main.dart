@@ -1,5 +1,4 @@
 import 'dart:html';
-
 import 'package:flutter/material.dart';
 import 'package:random/todo.dart';
 import 'dart:async';
@@ -26,7 +25,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-//client id - 87867891558-p8khtfmadd47rn6civs1ravc32dqe80f.apps.googleusercontent.com
+
 class Todolist extends StatefulWidget {
   const Todolist({Key? key}) : super(key: key);
 
@@ -40,26 +39,42 @@ class _TodolistState extends State<Todolist> {
   //final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   List<Todo> todos = [];
   int index = 0;
+  int countOfTodos = 2;
 
   @override
   void initState() {
-    initializepref();
     super.initState();
+    setcounter();
   }
 
-  initializepref() async {
-    // Obtain shared preferences.
-    final prefs = await SharedPreferences.getInstance();
+  setcounter()async {
+          final prefs = await SharedPreferences.getInstance();
+          setState(() {
+            countOfTodos = prefs.getInt('counter') ?? 0;
+          });
+    
   }
-
   addTodo(Todo todostr, bool isCompleted) async {
     //final todo = Todo(title: todostr);
     // prefs.setString(index.toString(), todostr.title);
     // prefs.setBool(index.toString(), isCompleted);
     // List<String> storinglist =
     //     todos.map((item) => json.encode(item.toMap())).toList();
-    String jsonString =json.encode(todostr.toJson());
-    todos.add(todostr);
+    final prefs = await SharedPreferences.getInstance();
+    String jsonString = json.encode(todostr.toJson());
+    prefs.setString("${countOfTodos}", jsonString);
+    await prefs.setInt('counter', countOfTodos);
+
+    prefs.setString("${countOfTodos}_title", todostr.title);
+    prefs.setBool("${countOfTodos}_compl", false);
+
+    setState(() {
+      //todos.add(todostr);
+      countOfTodos++;
+          prefs.setInt('counter', countOfTodos);
+
+    });
+    //TODO: print todos and check for pref if stored
     controller.clear();
     Navigator.of(context).pop();
   }
@@ -94,17 +109,17 @@ class _TodolistState extends State<Todolist> {
             }),
       ),
       body: ListView.builder(
-          itemCount: todos.length,
+          itemCount: countOfTodos,
           itemBuilder: (BuildContext context, int index) {
-            return Todolistitem(todo: todos[index]);
+            return Todolistitem(index);
           }),
     );
   }
 }
 
 class Todolistitem extends StatefulWidget {
-  const Todolistitem({Key? key, required this.todo}) : super(key: key);
-  final Todo todo;
+  const Todolistitem(this.index, {Key? key}) : super(key: key);
+  final int index;
   @override
   _TodolistitemState createState() => _TodolistitemState();
 }
@@ -112,25 +127,42 @@ class Todolistitem extends StatefulWidget {
 class _TodolistitemState extends State<Todolistitem> {
   bool valuesecond = false;
   String st = "";
-  int index = 0;
+  Todo? todo;
+  SharedPreferences? prefs;
 
-  giveval() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+  giveval(bool? b) async {
+    prefs = await SharedPreferences.getInstance();
     setState(() {
-      valuesecond = prefs.getBool(index.toString())!;
-      st = prefs.getString(index.toString())!;
+      valuesecond = b!;
+    });
+    prefs!.setBool("${widget.index}_compl", b!);
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    getData();
+    super.initState();
+  }
+
+  getData() async {
+    prefs = await SharedPreferences.getInstance();
+    debugPrint("Inside get data");
+    setState(() {
+      // valuesecond = prefs!.getBool(widget.index.toString() + "_compl")!;
+      // st = prefs!.getString(widget.index.toString() + "_title")!;
+       String st = prefs!.getString(widget.index.toString())!;
+      todo = Todo.fromJson(st);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Builder(builder: (context) {
-      return ListTile(
-          leading: const Icon(Icons.list),
-          trailing: Checkbox(value: valuesecond, onChanged: giveval()),
-          //title: Text(widget.todo.title));
-          title: Text(st));
-    });
+    return ListTile(
+        leading: const Icon(Icons.list),
+        trailing: Checkbox(value: valuesecond, onChanged: giveval),
+        //title: Text(widget.todo.title));
+        title: Text(st));
   }
 }
 
